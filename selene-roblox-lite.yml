@@ -1,0 +1,58 @@
+# Minimal local Roblox standard library extensions for repository linting.
+---
+base: luau
+globals:
+  game.GetService:
+    args:
+      - type: string
+    method: true
+    must_use: true
+  game.BindToClose:
+    args:
+      - type: function
+    method: true
+  script.FindFirstChild:
+    args:
+      - type: string
+      - required: false
+        type: bool
+    method: true
+    must_use: true
+  script.WaitForChild:
+    args:
+      - type: string
+      - required: false
+        type: number
+    method: true
+    must_use: true
+  script.GetAttribute:
+    args:
+      - type: string
+    method: true
+    must_use: true
+  script.SetAttribute:
+    args:
+      - type: string
+      - required: false
+        type: any
+    method: true
+  script.Parent:
+    property: read-only
+  script.Parent.Janitor:
+    property: read-only
+  script.Parent.Logger:
+    property: read-only
+  script.Parent.Parent.Config.GameConfig:
+    property: read-only
+  Instance.new:
+    args:
+      - type: string
+      - required: false
+        type:
+          display: Instance
+    must_use: true
+  warn:
+    args:
+      - type: any
+      - required: false
+        type: "..."

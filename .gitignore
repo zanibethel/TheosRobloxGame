@@ -1,1 +1,11 @@
 *.lock
+
+# Rojo build output
+*.rbxlx
+
+# Aftman tool binaries
+.aftman/
+
+# OS metadata
+.DS_Store
+Thumbs.db
