@@ -99,16 +99,25 @@ end
 
 -- Slides the door panel up above the doorway using TweenService.
 -- Disables collision after the tween completes so players can walk through.
+-- The delay thread is registered with the service janitor so it is cancelled
+-- safely if the service stops during the animation window.
 local function animateDoorOpen(doorPart: BasePart)
 	local raisedCFrame = doorPart.CFrame + Vector3.new(0, RoomConfig.DoorSize.Y + 1, 0)
 	local tweenInfo = TweenInfo.new(RoomConfig.DoorOpenDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 	local tween = TweenService:Create(doorPart, tweenInfo, { CFrame = raisedCFrame })
 	tween:Play()
-	task.delay(RoomConfig.DoorOpenDuration, function()
+	local delayThread = task.delay(RoomConfig.DoorOpenDuration, function()
 		if doorPart ~= nil and doorPart.Parent ~= nil then
 			doorPart.CanCollide = false
 		end
 	end)
+	-- Cancel the thread on service stop; Janitor.Add handles the case where
+	-- the janitor has already been cleaned by calling the function immediately.
+	if serviceJanitor ~= nil then
+		serviceJanitor:Add(function()
+			task.cancel(delayThread)
+		end)
+	end
 end
 
 -- ---------------------------------------------------------------------------

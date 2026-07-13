@@ -207,6 +207,11 @@ function controller.Start(context)
 	-- Covers the case where the player spawns or respawns after the door has
 	-- already been opened (the attribute is replicated; no server broadcast
 	-- is needed for the late join).
+	--
+	-- A boolean guard prevents duplicate attribute listeners if checkRoomFolder
+	-- is called more than once (e.g. room destroyed and recreated mid-session).
+
+	local roomListenerRegistered = false
 
 	local function checkRoomFolder(room: Instance?)
 		if room == nil then
@@ -216,10 +221,15 @@ function controller.Start(context)
 		if state ~= nil then
 			updateRoomState(state)
 		end
-		-- Watch for future attribute changes on this folder.
-		controllerJanitor:Add(room:GetAttributeChangedSignal("RoomState"):Connect(function()
-			updateRoomState(room:GetAttribute("RoomState"))
-		end))
+		-- Only register the attribute listener once.  If the room folder is
+		-- replaced the ChildAdded listener below would fire again, but the
+		-- guard ensures we do not stack connections.
+		if not roomListenerRegistered then
+			roomListenerRegistered = true
+			controllerJanitor:Add(room:GetAttributeChangedSignal("RoomState"):Connect(function()
+				updateRoomState(room:GetAttribute("RoomState"))
+			end))
+		end
 	end
 
 	-- Check if the folder already exists (server may have built it before

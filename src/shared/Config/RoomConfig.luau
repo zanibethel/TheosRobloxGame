@@ -22,9 +22,10 @@ local RoomConfig = {
 		CenterY = 0, -- world Y at bottom of floor slab
 		CenterZ = 0,
 	},
-	-- SpawnPoint part center.  Y = CenterY + FloorThickness so it sits on the
-	-- floor surface; LobbyService adds +3 studs, landing characters at Y = 5
-	-- which matches PartyConfig.TestRoom.FallbackSpawnPosition.
+	-- SpawnPoint part center.  Y = CenterY + FloorThickness = 0 + 2 = 2, which
+	-- places it on the floor top surface.  LobbyService and TransitionService add
+	-- +3 studs when they use a SpawnPoint part, so characters land at Y = 5,
+	-- matching PartyConfig.TestRoom.FallbackSpawnPosition = Vector3.new(100, 5, 0).
 	SpawnPosition = Vector3.new(100, 2, -5),
 	-- Drawer body center.  Bottom at Y = 2.5, resting on the floor.
 	DrawerPosition = Vector3.new(92, 3.5, -8),
