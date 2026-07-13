@@ -65,6 +65,23 @@ Expected: all 10 tests pass. Tests cover:
 - New/unassigned players spawn in the lobby
 - Rate-limited requests do not mutate state
 
+### Room system pure-logic tests
+Run from a server Script or command bar:
+```lua
+local Tests = require(game.ReplicatedStorage.Shared.Tests.RoomTests)
+local passed, total = Tests.run()
+print(passed .. "/" .. total .. " tests passed")
+```
+Expected: all 8 tests pass. Tests cover:
+- First search awards key
+- Second search does not award another key
+- Player without key cannot unlock door
+- Player with key unlocks door (key consumed, room complete)
+- Door unlock happens only once
+- Simultaneous search: exactly one winner
+- Session reset clears key and drawer/door state
+- Player disconnect removes their key
+
 Repository automation can only validate repository-visible files and CLI checks. It does not replace Roblox Studio playtests, replication checks, or device/input verification.
 
 ## Manual Roblox Studio test checklists
@@ -327,6 +344,7 @@ Full test checklist in `docs/PARTY_SYSTEM.md`.  Summary for pull request sign-of
 - [ ] Repository commands completed
 - [ ] Party system pure-logic tests (10/10 pass)
 - [ ] Interaction framework pure-logic tests (18/18 pass)
+- [ ] Room system pure-logic tests (8/8 pass)
 - Notes:
 
 ### Manual Roblox Studio testing
@@ -369,6 +387,15 @@ Full test checklist in `docs/PARTY_SYSTEM.md`.  Summary for pull request sign-of
 - [ ] Duplicate event connections
 - [ ] Invalid remote arguments
 - [ ] Remote spam
+- [ ] Room system: TestRoom folder appears in workspace after launch
+- [ ] Room system: Drawer ProximityPrompt visible and hold search works
+- [ ] Room system: Key HUD updates after search
+- [ ] Room system: Door rejects player without key ("The door is locked.")
+- [ ] Room system: Door opens for player with key; "Room Complete" appears
+- [ ] Room system: multiplayer — drawer update replicates
+- [ ] Room system: simultaneous search — one winner
+- [ ] Room system: simultaneous door attempt — one unlock
+- [ ] Room system: respawn after room complete shows overlay
 - [ ] Fake inventory / keys / doors / rewards / progression attempts
 - [ ] Mobile
 - [ ] Controller

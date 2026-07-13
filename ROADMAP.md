@@ -32,7 +32,7 @@ _Status values: Not started, In progress, Complete. Only mark work Complete afte
 - **Dependencies:** 1, 2.
 - **Acceptance criteria:** Each searchable can be configured, searched once or by cooldown, and replicated consistently across players.
 - **Manual Studio tests:** Verify simultaneous searches, empty results, already-open state, and reset behavior.
-- **Status:** Not started.
+- **Status:** In progress — first playable vertical slice delivered: `TestRoomBuilder` builds a runtime room; `RoomService` registers a Hold-mode searchable drawer (once per session, exclusive) via `InteractionService`; `KeyService` owns key state; `RoomService` registers an Instant-mode exit door requiring the key; `RoomFeedback`/`KeyStateChanged`/`RoomStateChanged` remotes drive client HUD; pure-logic `RoomTests` suite (8 tests) written; `docs/FIRST_PLAYABLE_ROOM.md` created.  Roblox Studio verification is still pending.
 
 ## 5. Inventory and usable-item system
 - **Goal:** Track held items and consumables securely.
