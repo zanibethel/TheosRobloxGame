@@ -10,9 +10,9 @@
 - **Godot artifact:** Not present in this repository (was left in Throw-Some-Stuff; unrelated to the Roblox game).
 - **Roblox systems now present:**
   - Rojo project layout (`default.project.json`) with three-way `src/shared`, `src/server`, `src/client` layout.
-  - Shared config (`GameConfig.luau`, `PartyConfig.luau`), shared types (`Types/init.luau`), Janitor, Logger, ModuleBootstrap utilities.
+  - Shared config (`GameConfig.luau`, `PartyConfig.luau`, `RoomConfig.luau`), shared types (`Types/init.luau`), Janitor, Logger, ModuleBootstrap utilities.
   - Shared enums (`Enums/PartyState.luau`).
-  - Shared remotes accessor (`Remotes/init.luau`) with `InteractionRequest`, `InteractionStateChanged`, `PartyRequest`, `PartyStateChanged`, and `PartyListChanged` remotes.
+  - Shared remotes accessor (`Remotes/init.luau`) with `InteractionRequest`, `InteractionStateChanged`, `PartyRequest`, `PartyStateChanged`, `PartyListChanged`, `KeyStateChanged`, `RoomStateChanged`, and `RoomFeedback` remotes.
   - Shared types for the full interaction framework (`InteractionDefinition`, `SessionRecord`, result codes) and party system (`PartyState`, `PartyOperation`, `PartyResultCode`, `PartyInfo`, `PartyListEntry`).
   - Server bootstrap (`init.server.luau`) and client bootstrap (`init.client.luau`) with idempotent initialization and safe failure handling.
   - `RuntimeStateService` and `RuntimeController` skeleton.
@@ -28,6 +28,16 @@
     - `LobbyController`: client status bar reflecting `ReplicatedStorage.GameRuntime.Phase`.
     - `PartyController`: full placeholder UI (MainPanel, JoinPanel, PartyPanel) wired to party remotes.
     - `docs/PARTY_SYSTEM.md`: architecture, networking protocol, lifecycle, rate limiting, location-state ownership, state diagram, and testing checklist.
+  - **Milestone 4 — First playable search room (in progress):**
+    - `TestRoomBuilder`: server service that builds a temporary test room under `workspace.TestRoom` at runtime — floor, three-section north wall with doorway opening (WallNorthLeft, WallNorthRight, WallNorthTop), remaining solid walls, ceiling, light, spawn point, searchable drawer, exit door.  Idempotent; cleaned up on service stop.
+    - `KeyService`: minimal server-authoritative key ownership for the exit key.  Awards, consumes, and cleans key state.  Fires `KeyStateChanged` to client for display-only.
+    - `RoomService`: registers `room_search_drawer` (Hold, exclusive, once-per-session) and `room_exit_door` (Instant, exclusive, once) with `InteractionService`.  Manages drawer/door state, fires `RoomFeedback` and `RoomStateChanged`.  `reset(KeyService)` restores all per-session state for a new round.
+    - `TransitionService`: `LaunchParty()` now enforces one active test-room session at a time — rejects a second launch with `room_in_use`, resets room state before each new session, and tracks `activeRoomPartyId`.  `releaseRoom(partyId)` clears the occupancy lock when the party ends.
+    - `PartyService`: `destroyParty` calls `TransitionService.releaseRoom` to free the room when a party is torn down.
+    - `RoomController`: client HUD with "Exit Key: Yes/No" status, "Key found!" / "The door is locked." feedback messages, and "Room Complete" overlay.  Watches `workspace.TestRoom` attribute for respawn persistence.
+    - `RoomConfig`: focused config for room dimensions, spawn, drawer, door, door clearance, hold/tween durations, and key consumption flag.
+    - Pure-logic `RoomTests` suite (12 tests; no Roblox Studio required) — covers room interactions, session reset, session occupancy, and multi-session contamination prevention.
+    - `docs/FIRST_PLAYABLE_ROOM.md`: architecture, flows, multiplayer rules, session lifecycle, and Studio test checklist.
   - GitHub Actions workflow validating JSON, TOML, StyLua formatting, Selene linting, and Rojo buildability.
 - **Post-merge repair status:** Bootstrap lifecycle failure handling was repaired after the initial foundation PR so failed startup no longer leaves server/client/module guards locked.
 
@@ -50,6 +60,7 @@
 ### Written but not yet executed: automated tests
 - `InteractionTests.luau` contains 18 pure-logic tests written against a minimal custom harness.
 - `PartyTests.luau` contains 10 pure-logic tests for the party system state machine: host transfer, countdown cancellation (leave / unready), size constraint enforcement, launch failure recovery, successful launch, respawn routing (InGame → game spawn; Launching → skip; Lobby → lobby spawn), and rate-limit isolation.
+- `RoomTests.luau` contains 12 pure-logic tests for the room state machine: first search awards key, second search rejected, no-key door rejection, key-holder unlocks door with key consumption, single-unlock guarantee, simultaneous-search single-winner, session reset, disconnect cleanup, new session starts clean, second party cannot acquire occupied room, room available after session ends, and multi-session contamination prevention.
 - No automated test runner currently executes these tests outside Roblox Studio.
 - Tests must be run manually from a Roblox Studio server Script or the command bar; their results have not been recorded in this repository.
 - Do not treat the tests as verified until a Studio run is completed and the pass/fail output is documented.
@@ -58,8 +69,7 @@
 - **Milestone 1 — Roblox Foundation:** `In progress` (Studio lifecycle, replication, and bootstrap behavior are unverified).
 - **Milestone 2 — Interaction Framework:** `In progress` (Studio ProximityPrompt rendering, hold timing, exclusive locking, death/disconnect cleanup, and state propagation are unverified).
 - **Milestone 3 — Lobby and Party System:** `In progress` — all code present and repository checks pass; Roblox Studio verification still pending (lobby spawn positioning, party UI rendering, countdown behavior, character pivot to test room, InGame respawn routing, and multi-player replication are unverified without a Studio playtest).
-- Code inspection confirms the interaction framework design satisfies: server-authoritative validation, server-generated session IDs, server-owned hold timing, cancellation, replay protection, exclusive/shared locking, cooldowns, enabled-state checks, death/reset/disconnect cleanup, target-removal cleanup, room/round reset API, and pcall-wrapped handler execution.
-- These properties are not considered verified until the manual Studio test checklist in `TESTING.md` has been completed and results recorded.
+- **Milestone 4 — First Playable Search Room:** `In progress` — all code present and repository checks pass; Roblox Studio verification pending (room geometry rendering, ProximityPrompt appearing on Drawer and ExitDoor, Hold search interaction, key HUD, door unlock and tween, "Room Complete" overlay, multiplayer replication, and respawn persistence are unverified without a Studio playtest).
 
 ## Missing foundation
 - No Roblox Studio place file has been synced with the migrated source tree yet.
@@ -88,7 +98,8 @@
 ## Recommended next milestone
 - **Immediate:** Complete Studio verification of Milestones 1 and 2 (bootstrap lifecycle + interaction framework).
 - **After Studio verification of M1/M2:** Verify Milestone 3 in Studio (lobby spawn, party UI, countdown, and test-room transition).
-- **After Studio verification of M3:** Begin Milestone 4 (searchable-object system) or continue with additional party system polish.
+- **After Studio verification of M3:** Verify Milestone 4 in Studio (search room geometry, drawer interaction, key HUD, door unlock, Room Complete, multiplayer replication).
+- **After Studio verification of M4:** Polish the first playable slice or begin Milestone 5 (full inventory system).
 
 ## Assumptions
 - TheosRobloxGame is the permanent home for all Roblox game development; Throw-Some-Stuff is retired.

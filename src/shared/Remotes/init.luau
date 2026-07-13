@@ -38,6 +38,15 @@ local Names = {
 	PartyRequest = "PartyRequest",
 	PartyStateChanged = "PartyStateChanged",
 	PartyListChanged = "PartyListChanged",
+	-- Room system remotes
+	-- KeyStateChanged (RemoteEvent): server fires (hasKey: boolean) to one client.
+	-- RoomStateChanged (RemoteEvent): server fires (state: string) to all clients.
+	--   state values: "searching" | "complete"
+	-- RoomFeedback (RemoteEvent): server fires (message: string) to one client for
+	--   contextual messages such as "The door is locked."
+	KeyStateChanged = "KeyStateChanged",
+	RoomStateChanged = "RoomStateChanged",
+	RoomFeedback = "RoomFeedback",
 }
 
 local REMOTE_CLASSES: { [string]: string } = {
@@ -46,6 +55,9 @@ local REMOTE_CLASSES: { [string]: string } = {
 	[Names.PartyRequest] = "RemoteFunction",
 	[Names.PartyStateChanged] = "RemoteEvent",
 	[Names.PartyListChanged] = "RemoteEvent",
+	[Names.KeyStateChanged] = "RemoteEvent",
+	[Names.RoomStateChanged] = "RemoteEvent",
+	[Names.RoomFeedback] = "RemoteEvent",
 }
 
 local Remotes = {}

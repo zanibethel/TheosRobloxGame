@@ -26,6 +26,11 @@ local initialized = false
 local started = false
 local serviceLogger = nil
 
+-- Tracks which party currently occupies the test room.
+-- nil when the room is free; set to the partyId during LaunchParty and
+-- cleared by releaseRoom.  Only one party may occupy the room at a time.
+local activeRoomPartyId: string? = nil
+
 -- ---------------------------------------------------------------------------
 -- Private helpers
 -- ---------------------------------------------------------------------------
@@ -52,6 +57,10 @@ end
 -- The `party` argument must expose a `players` array and a `partyId` string.
 -- When PartyConfig.FutureTeleportEnabled is true, replace the character-move
 -- block below with TeleportService.TeleportAsync without touching the signature.
+--
+-- One active test-room party is enforced at a time.  A second party attempting
+-- to launch while the room is occupied receives the "room_in_use" result code.
+-- Call releaseRoom(partyId) when the party is done to free the room.
 function service.LaunchParty(party: { players: { Player }, partyId: string }): (boolean, string?)
 	if PartyConfig.FutureTeleportEnabled then
 		-- TeleportService integration is not yet implemented.
@@ -65,6 +74,30 @@ function service.LaunchParty(party: { players: { Player }, partyId: string }): (
 		end
 		return false, "not_implemented"
 	end
+
+	-- Enforce single-room occupancy: reject a second party while one is active.
+	if activeRoomPartyId ~= nil then
+		if serviceLogger ~= nil then
+			serviceLogger.warn(
+				"%s: room is occupied by party %s; rejecting launch for party %s",
+				service.Name,
+				tostring(activeRoomPartyId),
+				tostring(party.partyId)
+			)
+		end
+		return false, "room_in_use"
+	end
+
+	-- Reset room state so the new party starts with a clean drawer, door, keys,
+	-- and RoomState attribute.  Lazy-require to avoid circular dependency issues
+	-- at module-load time and to keep TransitionService startup order-agnostic.
+	local RoomService = require(script.Parent.RoomService)
+	local KeyService = require(script.Parent.KeyService)
+	RoomService.reset(KeyService)
+
+	-- Mark the room as occupied before pivoting characters so that a concurrent
+	-- launch attempt (highly unlikely but possible) is rejected immediately.
+	activeRoomPartyId = party.partyId
 
 	local origin = getTestRoomSpawnCFrame()
 	for index, player in ipairs(party.players) do
@@ -85,6 +118,18 @@ function service.LaunchParty(party: { players: { Player }, partyId: string }): (
 		)
 	end
 	return true, nil
+end
+
+-- Releases the test-room occupancy lock held by `partyId`.
+-- No-op when called with a partyId that does not match the current occupant.
+-- Call this from PartyService when the active party is destroyed or completes.
+function service.releaseRoom(partyId: string)
+	if activeRoomPartyId == partyId then
+		activeRoomPartyId = nil
+		if serviceLogger ~= nil then
+			serviceLogger.info("%s: room released by party %s", service.Name, partyId)
+		end
+	end
 end
 
 -- ---------------------------------------------------------------------------
@@ -112,6 +157,7 @@ function service.Start(context)
 end
 
 function service.Stop(context)
+	activeRoomPartyId = nil
 	serviceLogger = nil
 	started = false
 	initialized = false

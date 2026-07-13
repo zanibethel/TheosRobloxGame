@@ -145,3 +145,33 @@ globals:
       - required: false
         type: number
     must_use: true
+  # TweenInfo constructor used by room-door animation.
+  TweenInfo:
+    property: read-only
+  TweenInfo.new:
+    args:
+      - required: false
+        type: any
+      - required: false
+        type: any
+      - required: false
+        type: any
+      - required: false
+        type: any
+      - required: false
+        type: any
+      - required: false
+        type: any
+    must_use: true
+  script.Parent.KeyService:
+    property: read-only
+  # Vector2 constructor used in UI AnchorPoint assignments.
+  Vector2:
+    property: read-only
+  Vector2.new:
+    args:
+      - required: false
+        type: number
+      - required: false
+        type: number
+    must_use: true
