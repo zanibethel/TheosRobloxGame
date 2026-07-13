@@ -42,6 +42,8 @@ globals:
     property: read-only
   script.Parent.Logger:
     property: read-only
+  script.Parent.InteractionService:
+    property: read-only
   script.Parent.Parent.Config.GameConfig:
     property: read-only
   Instance.new:
