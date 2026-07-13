@@ -230,13 +230,16 @@ local function buildExitDoor(parent: Instance)
 	local frameMat = Enum.Material.Wood
 	-- Visual thickness of each frame strip (must be > 0; kept narrow so it does
 	-- not visually intrude on the opening).
-	local frameStrip = 0.25
+	local frameThickness = 0.25
+	-- Total clear width including the side clearances (shared by pillar placement
+	-- and top-beam width).
+	local openingWidth = dSize.X + 2 * clearance
 
 	-- Left pillar: sits to the left of the opening's left edge.
 	local leftPillar = Instance.new("Part")
 	leftPillar.Name = "DoorFrameLeft"
-	leftPillar.Size = Vector3.new(frameStrip, dSize.Y, wt)
-	leftPillar.CFrame = CFrame.new(dPos.X - dSize.X / 2 - clearance - frameStrip / 2, dPos.Y, dPos.Z)
+	leftPillar.Size = Vector3.new(frameThickness, dSize.Y, wt)
+	leftPillar.CFrame = CFrame.new(dPos.X - openingWidth / 2 - frameThickness / 2, dPos.Y, dPos.Z)
 	leftPillar.Color = frameColor
 	leftPillar.Material = frameMat
 	leftPillar.Anchored = true
@@ -247,8 +250,8 @@ local function buildExitDoor(parent: Instance)
 	-- Right pillar: sits to the right of the opening's right edge.
 	local rightPillar = Instance.new("Part")
 	rightPillar.Name = "DoorFrameRight"
-	rightPillar.Size = Vector3.new(frameStrip, dSize.Y, wt)
-	rightPillar.CFrame = CFrame.new(dPos.X + dSize.X / 2 + clearance + frameStrip / 2, dPos.Y, dPos.Z)
+	rightPillar.Size = Vector3.new(frameThickness, dSize.Y, wt)
+	rightPillar.CFrame = CFrame.new(dPos.X + openingWidth / 2 + frameThickness / 2, dPos.Y, dPos.Z)
 	rightPillar.Color = frameColor
 	rightPillar.Material = frameMat
 	rightPillar.Anchored = true
@@ -260,8 +263,8 @@ local function buildExitDoor(parent: Instance)
 	-- sits above the clearance top edge.
 	local topBeam = Instance.new("Part")
 	topBeam.Name = "DoorFrameTop"
-	topBeam.Size = Vector3.new(dSize.X + 2 * clearance + 2 * frameStrip, frameStrip, wt)
-	topBeam.CFrame = CFrame.new(dPos.X, dPos.Y + dSize.Y / 2 + clearance + frameStrip / 2, dPos.Z)
+	topBeam.Size = Vector3.new(openingWidth + 2 * frameThickness, frameThickness, wt)
+	topBeam.CFrame = CFrame.new(dPos.X, dPos.Y + dSize.Y / 2 + clearance + frameThickness / 2, dPos.Z)
 	topBeam.Color = frameColor
 	topBeam.Material = frameMat
 	topBeam.Anchored = true
