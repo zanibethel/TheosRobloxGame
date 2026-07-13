@@ -408,7 +408,7 @@ local function handleStart(player: Player): (boolean, string, any)
 
 	local capturedId = partyId
 	party.countdownThread = task.spawn(function()
-		for tick = 1, PartyConfig.Party.CountdownSeconds do
+		for second = 1, PartyConfig.Party.CountdownSeconds do
 			task.wait(1)
 
 			local p = parties[capturedId]
@@ -416,8 +416,8 @@ local function handleStart(player: Player): (boolean, string, any)
 				return
 			end
 
-			if tick < PartyConfig.Party.CountdownSeconds then
-				p.countdownRemaining = PartyConfig.Party.CountdownSeconds - tick
+			if second < PartyConfig.Party.CountdownSeconds then
+				p.countdownRemaining = PartyConfig.Party.CountdownSeconds - second
 				broadcastPartyState(p)
 			else
 				-- Final tick: begin launch.

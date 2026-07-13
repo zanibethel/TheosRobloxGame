@@ -509,9 +509,9 @@ local function updatePartyPanel()
 
 		-- Reflect own ready state
 		local amReady = false
-		local players2 = info.players
-		if type(players2) == "table" then
-			for _, pInfo in players2 do
+		local memberList = info.players
+		if type(memberList) == "table" then
+			for _, pInfo in memberList do
 				if pInfo.userId == localUserId then
 					amReady = pInfo.isReady == true
 					break
@@ -537,15 +537,15 @@ local function updatePartyPanel()
 		local canStart = isHost and not isCountdown and not isInGame
 		if canStart then
 			local allReady = true
-			local players3 = info.players
-			if type(players3) == "table" then
-				for _, pInfo in players3 do
+			local memberList2 = info.players
+			if type(memberList2) == "table" then
+				for _, pInfo in memberList2 do
 					if not pInfo.isReady then
 						allReady = false
 						break
 					end
 				end
-				canStart = allReady and #players3 >= 1
+				canStart = allReady and #memberList2 >= 1
 			end
 		end
 		startBtn.BackgroundColor3 = canStart and C.green or C.gray
