@@ -40,6 +40,36 @@
 - Manual Studio testing: local server playtests, device input checks, lighting/audio/jumpscare review, and replication verification.
 - Do not claim Studio-only behavior is verified unless it was explicitly tested in Roblox Studio.
 
+## Post-Commit Review
+
+After each meaningful commit or milestone, review only the changed files and their direct consumers. Do not reread unrelated files or narrate every tool call.
+
+**Check each of the following for changed code:**
+1. Client/server authority — no trusted logic on the client; no server accepting untrusted client values.
+2. Remote validation — every RemoteEvent and RemoteFunction argument validated on the server before use.
+3. Cleanup and lifecycle — connections, tasks, and player state are cleaned up on reset, disconnect, and death.
+4. Duplicate initialization — guards prevent a module or service from initializing more than once per session.
+5. Multiplayer race conditions — concurrent requests are handled safely; exclusive locks are released on failure paths.
+6. Reset behavior — room reset and round reset paths are covered and leave no stale state.
+7. Configuration and hard-coded values — tuning values belong in config modules, not inline in logic.
+8. Documentation accuracy — comments, status docs, and PR descriptions match actual behavior.
+
+**Validation scope:**
+- During development: run the narrowest relevant check (e.g. `stylua --check` on changed files, `selene` on changed files).
+- Before finalizing the PR: run the full repository validation suite (JSON, TOML, StyLua, Selene, Rojo build).
+
+**Findings outside the current scope:**
+- Record unrelated bugs or improvements as follow-up items in the PR description or a tracking note.
+- Do not expand the current branch to fix unrelated issues.
+
+**Commit summary:**
+Each meaningful commit or PR must summarize:
+- What changed and why.
+- Known risks or edge cases.
+- Validation performed (which checks ran and whether they passed).
+- Studio tests still required before the milestone is complete.
+- Next recommended task.
+
 ## Definition of done
 A task is done only when:
 - Relevant docs were reviewed first.

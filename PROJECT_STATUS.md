@@ -29,9 +29,26 @@
 - Repository automation runs JSON parsing, TOML parsing, StyLua, Selene, and a Rojo build on pull requests and pushes to `main`.
 - Repository automation does not replace Roblox Studio testing for lifecycle, replication, lighting, audio, or device input behavior.
 
-## Verified functionality
-- Repository inspection verified that a full interaction framework exists and satisfies: server-authoritative validation, server-generated session IDs, server-owned hold timing, cancellation, replay protection, exclusive/shared locking, cooldowns, enabled-state checks, death/reset/disconnect cleanup, target-removal cleanup, room/round reset API, and pcall-wrapped handler execution.
-- GitHub Actions validates repository-visible JSON/TOML syntax, formatting, linting, and Rojo buildability.
+## Verification status
+
+### Verified: repository structure
+- All source files, configuration files, and documentation are present and correctly laid out in the repository.
+
+### Verified: static validation
+- GitHub Actions validates repository-visible JSON/TOML syntax, StyLua formatting, Selene linting, and Rojo buildability on every push and pull request.
+- These checks have been confirmed to pass via the Actions workflow on the current branch.
+
+### Written but not yet executed: automated tests
+- `InteractionTests.luau` contains 18 pure-logic tests written against a minimal custom harness.
+- No automated test runner currently executes these tests outside Roblox Studio.
+- Tests must be run manually from a Roblox Studio server Script or the command bar; their results have not been recorded in this repository.
+- Do not treat the 18 tests as verified until a Studio run is completed and the pass/fail output is documented.
+
+### Implemented: awaiting Roblox Studio verification
+- **Milestone 1 — Roblox Foundation:** `In progress` (Studio lifecycle, replication, and bootstrap behavior are unverified).
+- **Milestone 2 — Interaction Framework:** `In progress` (Studio ProximityPrompt rendering, hold timing, exclusive locking, death/disconnect cleanup, and state propagation are unverified).
+- Code inspection confirms the interaction framework design satisfies: server-authoritative validation, server-generated session IDs, server-owned hold timing, cancellation, replay protection, exclusive/shared locking, cooldowns, enabled-state checks, death/reset/disconnect cleanup, target-removal cleanup, room/round reset API, and pcall-wrapped handler execution.
+- These properties are not considered verified until the manual Studio test checklist in `TESTING.md` has been completed and results recorded.
 
 ## Missing foundation
 - No Roblox Studio place file has been synced with the migrated source tree yet.
