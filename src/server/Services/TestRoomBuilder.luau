@@ -40,13 +40,7 @@ local serviceJanitor = nil
 -- Private: part builders
 -- ---------------------------------------------------------------------------
 
-local function makePart(
-	parent: Instance,
-	name: string,
-	position: Vector3,
-	size: Vector3,
-	color: Color3
-): Part
+local function makePart(parent: Instance, name: string, position: Vector3, size: Vector3, color: Color3): Part
 	local part = Instance.new("Part")
 	part.Name = name
 	part.Size = size
@@ -110,22 +104,10 @@ local function buildRoomGeometry(parent: Instance)
 	)
 
 	-- East wall (positive X).
-	makePart(
-		parent,
-		"WallEast",
-		Vector3.new(cx + w / 2 + wt / 2, wallCenterY, cz),
-		Vector3.new(wt, h, l),
-		wallColor
-	)
+	makePart(parent, "WallEast", Vector3.new(cx + w / 2 + wt / 2, wallCenterY, cz), Vector3.new(wt, h, l), wallColor)
 
 	-- West wall (negative X).
-	makePart(
-		parent,
-		"WallWest",
-		Vector3.new(cx - w / 2 - wt / 2, wallCenterY, cz),
-		Vector3.new(wt, h, l),
-		wallColor
-	)
+	makePart(parent, "WallWest", Vector3.new(cx - w / 2 - wt / 2, wallCenterY, cz), Vector3.new(wt, h, l), wallColor)
 
 	-- Overhead point light embedded near the ceiling.
 	local lightPart = makePart(

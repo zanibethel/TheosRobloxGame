@@ -151,17 +151,17 @@ globals:
   TweenInfo.new:
     args:
       - required: false
-        type: number
+        type: any
+      - required: false
+        type: any
       - required: false
         type: any
       - required: false
         type: any
       - required: false
-        type: number
+        type: any
       - required: false
-        type: number
-      - required: false
-        type: boolean
+        type: any
     must_use: true
   script.Parent.KeyService:
     property: read-only

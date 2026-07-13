@@ -218,11 +218,7 @@ local function registerInteractions(InteractionService: any, KeyService: any)
 			broadcastRoomState("complete")
 
 			if serviceLogger ~= nil then
-				serviceLogger.info(
-					"%s: door unlocked by %s — room complete",
-					service.Name,
-					player.Name
-				)
+				serviceLogger.info("%s: door unlocked by %s — room complete", service.Name, player.Name)
 			end
 
 			return true, nil
