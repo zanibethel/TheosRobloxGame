@@ -50,6 +50,61 @@ Repository automation can only validate repository-visible files and CLI checks.
 
 ## Manual Roblox Studio test checklists
 
+### Party system
+
+Full test checklist in `docs/PARTY_SYSTEM.md`.  Summary for pull request sign-off:
+
+#### Lobby spawn
+- [ ] Player joins → character pivots to lobby spawn (or fallback if Lobby folder absent)
+- [ ] Player dies and respawns → character returns to lobby spawn
+
+#### Party creation and join
+- [ ] Create Party → party panel appears with self as host
+- [ ] Second player opens Join panel → first player's party listed
+- [ ] Second player joins → both see updated member list
+- [ ] Joining a full party → rejected
+- [ ] Joining a locked (Countdown/InGame) party → rejected
+
+#### Ready and start
+- [ ] All members ready up → ready status reflected for all
+- [ ] Host clicks Start when all ready → countdown begins (shows 5 → 4 → 3 → 2 → 1)
+- [ ] Host clicks Start when not all ready → rejected
+
+#### Countdown cancellation
+- [ ] Member unreadies during countdown → countdown cancels
+- [ ] Member leaves during countdown → countdown cancels
+- [ ] Host cancels during countdown → countdown cancels
+
+#### Launch
+- [ ] Countdown completes → all members pivot to TestRoom spawn (or fallback)
+- [ ] Party panel shows InGame state after launch
+
+#### Host leaving
+- [ ] Host leaves solo party → party destroyed
+- [ ] Host leaves multi-member party → host transferred to next member
+
+#### Player disconnect
+- [ ] Member disconnects → removed from party, remaining members unaffected
+- [ ] Host disconnects → host transferred (or party destroyed if alone)
+
+#### Party controls (host only)
+- [ ] Increase/decrease max players → party list updated
+- [ ] Kick a member → member sees no-party state
+- [ ] Non-host cannot see size controls or kick buttons
+
+#### Multi-party
+- [ ] Two separate parties form simultaneously → both listed in Join panel
+- [ ] Each party launches independently
+
+#### Solo play
+- [ ] One player creates party, readies, starts → countdown and launch succeed
+
+#### Two-player play
+- [ ] Both ready, start → both pivot to test room
+
+#### Six-player play
+- [ ] Six players in one party → all listed, all ready, all pivot to test room on launch
+
 ### Solo play
 - Start a one-player play session.
 - Confirm server bootstrap logs once.
@@ -259,6 +314,18 @@ Repository automation can only validate repository-visible files and CLI checks.
 - [ ] Interaction framework: invalid remote arguments
 - [ ] Interaction framework: room reset API
 - [ ] Interaction framework: state change propagation
+- [ ] Party system: lobby spawn
+- [ ] Party system: create party
+- [ ] Party system: join party
+- [ ] Party system: ready and start
+- [ ] Party system: countdown cancellation (unready / leave / cancel)
+- [ ] Party system: launch to test room
+- [ ] Party system: host leaving
+- [ ] Party system: member disconnect
+- [ ] Party system: kick and size control
+- [ ] Party system: solo launch
+- [ ] Party system: two-player launch
+- [ ] Party system: six-player launch
 - [ ] Character death
 - [ ] Respawn
 - [ ] Player disconnection

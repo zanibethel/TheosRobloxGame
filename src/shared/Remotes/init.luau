@@ -31,11 +31,21 @@ local WAIT_TIMEOUT = 10
 local Names = {
 	InteractionRequest = "InteractionRequest",
 	InteractionStateChanged = "InteractionStateChanged",
+	-- Party system remotes
+	-- PartyRequest (RemoteFunction): client invokes server with (operation, arg1?).
+	-- PartyStateChanged (RemoteEvent): server fires own-party snapshot to each member.
+	-- PartyListChanged (RemoteEvent): server fires public Waiting-party list to all clients.
+	PartyRequest = "PartyRequest",
+	PartyStateChanged = "PartyStateChanged",
+	PartyListChanged = "PartyListChanged",
 }
 
 local REMOTE_CLASSES: { [string]: string } = {
 	[Names.InteractionRequest] = "RemoteFunction",
 	[Names.InteractionStateChanged] = "RemoteEvent",
+	[Names.PartyRequest] = "RemoteFunction",
+	[Names.PartyStateChanged] = "RemoteEvent",
+	[Names.PartyListChanged] = "RemoteEvent",
 }
 
 local Remotes = {}

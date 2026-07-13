@@ -18,7 +18,15 @@ _Status values: Not started, In progress, Complete. Only mark work Complete afte
 - **Manual Studio tests:** Verify one player and two players can interact, cancel, and retry without desync.
 - **Status:** In progress — full server-authoritative interaction framework migrated into TheosRobloxGame; pure-logic tests pass in repository; Roblox Studio verification is still pending.
 
-## 3. Searchable-object system
+## 3. Lobby and party system
+- **Goal:** Give players a safe multiplayer lobby where they can form parties, ready up, count down, and enter the game together.
+- **Deliverable:** `LobbyService`, `PartyService`, `TransitionService`, `LobbyController`, `PartyController`, shared enums and types, placeholder UI, and `docs/PARTY_SYSTEM.md`.
+- **Dependencies:** 1.
+- **Acceptance criteria:** Players spawn in the lobby, can create or join parties, toggle ready, trigger a server-driven countdown, and move together to a test room via `TransitionService.LaunchParty`. Party state is server-authoritative. Countdown cancels immediately if anyone leaves or unreadies. Disconnection and host-leaving are handled cleanly with no stale state.
+- **Manual Studio tests:** Solo launch, two-player launch, six-player launch, host leaving, member disconnecting, unready during countdown, countdown cancellation, size control, kick, multiple parties simultaneously.
+- **Status:** In progress — all code merged; Roblox Studio verification pending (no place-file sync, no Studio playtest yet).
+
+## 4. Searchable-object system
 - **Goal:** Make containers and props searchable with configurable outcomes.
 - **Deliverable:** Searchable component/module, loot table config, search animation hooks, and server-owned state.
 - **Dependencies:** 1, 2.
@@ -26,7 +34,7 @@ _Status values: Not started, In progress, Complete. Only mark work Complete afte
 - **Manual Studio tests:** Verify simultaneous searches, empty results, already-open state, and reset behavior.
 - **Status:** Not started.
 
-## 4. Inventory and usable-item system
+## 5. Inventory and usable-item system
 - **Goal:** Track held items and consumables securely.
 - **Deliverable:** Server-authoritative inventory service, item definitions, equip/use flow, and UI hooks.
 - **Dependencies:** 1, 2, 3.
