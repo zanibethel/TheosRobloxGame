@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/rojo-rbx/v7.4.4/schemas/project.template.json",
+  "name": "TheosRobloxGame",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    }
+  }
+}

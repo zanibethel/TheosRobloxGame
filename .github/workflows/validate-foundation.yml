@@ -1,0 +1,58 @@
+name: Validate foundation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Set up Aftman tools
+        uses: ok-nick/setup-aftman@v0.4.2
+
+      - name: Validate JSON files
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          for path in sorted(Path(".").glob("*.json")):
+              with path.open("r", encoding="utf-8") as handle:
+                  json.load(handle)
+              print(f"validated JSON: {path}")
+          PY
+
+      - name: Validate TOML files
+        run: |
+          python - <<'PY'
+          import tomllib
+          from pathlib import Path
+
+          for path in (Path("aftman.toml"), Path("stylua.toml"), Path("selene.toml")):
+              with path.open("rb") as handle:
+                  tomllib.load(handle)
+              print(f"validated TOML: {path}")
+          PY
+
+      - name: Check StyLua formatting
+        run: stylua --check src
+
+      - name: Run Selene
+        run: selene src
+
+      - name: Build Rojo project
+        run: rojo build default.project.json --output /tmp/TheosRobloxGame.rbxlx
