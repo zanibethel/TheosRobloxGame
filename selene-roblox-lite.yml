@@ -44,6 +44,8 @@ globals:
     property: read-only
   script.Parent.InteractionService:
     property: read-only
+  script.Parent.TransitionService:
+    property: read-only
   script.Parent.Parent.Config.GameConfig:
     property: read-only
   Instance.new:
@@ -58,3 +60,88 @@ globals:
       - type: any
       - required: false
         type: "..."
+  # Roblox task library (single-threaded scheduler).
+  task.spawn:
+    args:
+      - type: any
+      - required: false
+        type: "..."
+  task.defer:
+    args:
+      - type: any
+      - required: false
+        type: "..."
+  task.delay:
+    args:
+      - type: number
+      - type: any
+      - required: false
+        type: "..."
+  task.wait:
+    args:
+      - required: false
+        type: number
+    must_use: false
+  task.cancel:
+    args:
+      - type: any
+  Enum:
+    property: read-only
+  # Roblox data-type constructors used in service and UI code.
+  # The luau base does not include these Roblox-specific types.
+  Color3:
+    property: read-only
+  Color3.fromRGB:
+    args:
+      - type: number
+      - type: number
+      - type: number
+    must_use: true
+  CFrame:
+    property: read-only
+  CFrame.new:
+    args:
+      - required: false
+        type: any
+      - required: false
+        type: any
+      - required: false
+        type: any
+    must_use: true
+  UDim:
+    property: read-only
+  UDim.new:
+    args:
+      - type: number
+      - type: number
+    must_use: true
+  UDim2:
+    property: read-only
+  UDim2.new:
+    args:
+      - type: number
+      - type: number
+      - type: number
+      - type: number
+    must_use: true
+  UDim2.fromOffset:
+    args:
+      - type: number
+      - type: number
+    must_use: true
+  UDim2.fromScale:
+    args:
+      - type: number
+      - type: number
+    must_use: true
+  Vector3:
+    property: read-only
+  Vector3.new:
+    args:
+      - required: false
+        type: number
+      - required: false
+        type: number
+      - required: false
+        type: number
+    must_use: true

@@ -102,4 +102,63 @@ export type SessionRecord = {
 	startHealth: number, -- Humanoid.Health at session start, for cancelOnDamage
 }
 
+-- ---------------------------------------------------------------------------
+-- Party system types
+-- ---------------------------------------------------------------------------
+
+-- All possible party lifecycle states.  Use PartyState enum values; never
+-- compare raw strings against these types in service or controller code.
+export type PartyState = "Waiting" | "Ready" | "Countdown" | "Launching" | "InGame" | "Closed"
+
+-- Operations a client may send via the PartyRequest RemoteFunction.
+export type PartyOperation = "create" | "join" | "leave" | "ready" | "unready" | "start" | "cancel" | "kick" | "setSize"
+
+-- Non-sensitive result codes returned to the client.  Never embed internal
+-- reason strings or server-side details in these codes.
+export type PartyResultCode =
+	"ok"
+	| "rate_limited"
+	| "already_in_party"
+	| "no_party"
+	| "not_host"
+	| "party_not_found"
+	| "party_full"
+	| "party_locked"
+	| "not_enough_players"
+	| "not_all_ready"
+	| "wrong_state"
+	| "player_not_found"
+	| "invalid_size"
+	| "invalid_args"
+	| "internal_error"
+
+-- Per-player snapshot inside a PartyInfo broadcast.
+export type PartyPlayerInfo = {
+	name: string,
+	displayName: string,
+	userId: number,
+	isReady: boolean,
+	isHost: boolean,
+}
+
+-- Safe read-only snapshot of a party broadcast to its members via PartyStateChanged.
+-- Never includes internal state, threads, or sensitive server data.
+export type PartyInfo = {
+	partyId: string,
+	hostName: string,
+	maxPlayers: number,
+	playerCount: number,
+	players: { PartyPlayerInfo },
+	state: string,
+	countdownRemaining: number?,
+}
+
+-- Entry in the public lobby list broadcast to all clients via PartyListChanged.
+export type PartyListEntry = {
+	partyId: string,
+	hostName: string,
+	playerCount: number,
+	maxPlayers: number,
+}
+
 return nil
