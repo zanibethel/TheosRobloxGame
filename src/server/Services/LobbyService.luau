@@ -1,13 +1,17 @@
 -- LobbyService
--- Positions players at the lobby spawn point each time their character loads.
+-- Positions players at the correct spawn point each time their character loads.
 --
--- Spawn location resolution (in priority order):
---   1. workspace[PartyConfig.Lobby.SpawnFolderName][PartyConfig.Lobby.SpawnPartName]
---   2. PartyConfig.Lobby.FallbackSpawnPosition
+-- Spawn destination is determined by PlayerLocationService:
 --
--- This service intentionally does not know about party state.
--- Future milestones may add logic to skip the lobby teleport when a player is
--- already InGame; that decision belongs in a higher-level session coordinator.
+--   Lobby     → workspace[Lobby.SpawnFolderName][Lobby.SpawnPartName]
+--               (or FallbackSpawnPosition if the part is absent)
+--   InGame    → workspace[TestRoom.SpawnFolderName][TestRoom.SpawnPartName]
+--               (or TestRoom.FallbackSpawnPosition if absent)
+--   Launching → character movement skipped; TransitionService will position
+--               the player when the launch completes
+--
+-- PlayerLocationService is the authoritative source for location state.
+-- LobbyService never writes that state; it only reads it.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -15,6 +19,7 @@ local Workspace = game:GetService("Workspace")
 
 local PartyConfig = require(ReplicatedStorage.Shared.Config.PartyConfig)
 local Janitor = require(ReplicatedStorage.Shared.Util.Janitor)
+local PlayerLocationService = require(script.Parent.PlayerLocationService)
 
 local service = {
 	Name = "LobbyService",
@@ -40,7 +45,18 @@ local function getLobbySpawnCFrame(): CFrame
 	return CFrame.new(PartyConfig.Lobby.FallbackSpawnPosition)
 end
 
-local function moveToLobby(player: Player)
+local function getTestRoomSpawnCFrame(): CFrame
+	local roomFolder = Workspace:FindFirstChild(PartyConfig.TestRoom.SpawnFolderName)
+	if roomFolder ~= nil then
+		local spawnPart = roomFolder:FindFirstChild(PartyConfig.TestRoom.SpawnPartName)
+		if spawnPart ~= nil and spawnPart:IsA("BasePart") then
+			return (spawnPart :: BasePart).CFrame + Vector3.new(0, 3, 0)
+		end
+	end
+	return CFrame.new(PartyConfig.TestRoom.FallbackSpawnPosition)
+end
+
+local function moveCharacterTo(player: Player, target: CFrame)
 	local character = player.Character
 	if character == nil then
 		return
@@ -48,7 +64,24 @@ local function moveToLobby(player: Player)
 	if character:FindFirstChild("HumanoidRootPart") == nil then
 		return
 	end
-	character:PivotTo(getLobbySpawnCFrame())
+	character:PivotTo(target)
+end
+
+local function handleRespawn(player: Player)
+	local location = PlayerLocationService.getLocation(player)
+
+	if location == PlayerLocationService.LocationState.InGame then
+		-- Respawn the character at the test-room spawn so players who die
+		-- in-game are returned to the game world, not the lobby.
+		moveCharacterTo(player, getTestRoomSpawnCFrame())
+	elseif location == PlayerLocationService.LocationState.Launching then
+		-- The party is mid-launch; TransitionService will position the player
+		-- when the launch completes.  Do not interfere.
+		return
+	else
+		-- Default: Lobby (also covers new/unassigned players).
+		moveCharacterTo(player, getLobbySpawnCFrame())
+	end
 end
 
 -- ---------------------------------------------------------------------------
@@ -99,12 +132,12 @@ function service.Start(context)
 
 		pj:Add(player.CharacterAdded:Connect(function(_character: Model)
 			-- Defer so the character hierarchy has fully loaded before pivoting.
-			task.defer(moveToLobby, player)
+			task.defer(handleRespawn, player)
 		end))
 
 		-- Handle players who already have a character when Start runs.
 		if player.Character ~= nil then
-			task.defer(moveToLobby, player)
+			task.defer(handleRespawn, player)
 		end
 	end
 

@@ -37,6 +37,23 @@ local PartyConfig = {
 	-- Set to true once TeleportService integration is ready.
 	-- TransitionService checks this flag before choosing a launch path.
 	FutureTeleportEnabled = false,
+	RateLimiting = {
+		-- Minimum elapsed seconds between any two PartyRequest calls from the
+		-- same player.  Requests arriving faster than this are rejected with
+		-- "rate_limited" and do not mutate any party state.
+		GlobalMinInterval = 0.5,
+		-- Per-operation minimum seconds applied on top of the global interval.
+		-- Operations not listed here are governed only by GlobalMinInterval.
+		OperationIntervals = {
+			create = 5,
+			join = 2,
+			start = 3,
+			kick = 1,
+			setSize = 1,
+			ready = 1,
+			unready = 1,
+		},
+	},
 }
 
 return table.freeze(PartyConfig)

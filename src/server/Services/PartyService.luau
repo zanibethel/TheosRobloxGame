@@ -12,6 +12,16 @@
 --   party empties → Closed (destroyed)
 --   host leaves → host transferred to next member (or party destroyed if alone)
 --
+-- Player location state
+--   PartyService updates PlayerLocationService as the party state machine
+--   advances.  LobbyService reads this state on every respawn to decide where
+--   to position the character.
+--     Waiting / Countdown → no change (players remain Lobby)
+--     Launching           → all members set to Launching
+--     InGame              → all members set to InGame
+--     leave / kick        → affected player reset to Lobby
+--     party destroyed     → all former members reset to Lobby
+--
 -- Remote protocol
 --   PartyRequest (RemoteFunction)
 --     Client → Server: InvokeServer(operation, arg1?)
@@ -40,6 +50,7 @@ local PartyConfig = require(ReplicatedStorage.Shared.Config.PartyConfig)
 local PartyState = require(ReplicatedStorage.Shared.Enums.PartyState)
 local Janitor = require(ReplicatedStorage.Shared.Util.Janitor)
 local TransitionService = require(script.Parent.TransitionService)
+local PlayerLocationService = require(script.Parent.PlayerLocationService)
 
 local service = {
 	Name = "PartyService",
@@ -74,6 +85,11 @@ local serviceLogger = nil
 local parties: { [string]: PartyData } = {}
 -- Reverse-lookup so we can find a player's party in O(1).
 local playerToPartyId: { [Player]: string } = {}
+
+-- Rate-limiting state: per-player timestamps using os.clock() for sub-second
+-- precision.  Both tables are cleared on player disconnect and on service Stop.
+local globalLastRequest: { [Player]: number } = {}
+local operationLastRequest: { [Player]: { [string]: number } } = {}
 
 -- Remote handles cached after Start.
 local partyRequestRemote = nil
@@ -200,6 +216,7 @@ local function destroyParty(party: PartyData)
 
 	for _, player in party.players do
 		playerToPartyId[player] = nil
+		PlayerLocationService.setLocation(player, PlayerLocationService.LocationState.Lobby)
 		broadcastNoParty(player)
 	end
 
@@ -236,6 +253,9 @@ local function removePlayerFromParty(player: Player)
 	end
 	party.players = remaining
 	playerToPartyId[player] = nil
+	-- Reset the leaving player's location to Lobby regardless of their prior
+	-- location.  If they were InGame, their next respawn will go to the lobby.
+	PlayerLocationService.setLocation(player, PlayerLocationService.LocationState.Lobby)
 	broadcastNoParty(player)
 
 	if #remaining == 0 then
@@ -250,6 +270,51 @@ local function removePlayerFromParty(player: Player)
 
 	broadcastPartyState(party)
 	broadcastPartyList()
+end
+
+-- ---------------------------------------------------------------------------
+-- Rate limiting
+-- ---------------------------------------------------------------------------
+
+-- Returns true if the request is allowed, false if it must be rejected.
+-- Does NOT record the timestamp; call recordRequest separately on acceptance.
+local function checkRateLimit(player: Player, operation: string, now: number): boolean
+	-- Global minimum interval between any two requests from this player.
+	local gLast = globalLastRequest[player]
+	if gLast ~= nil and (now - gLast) < PartyConfig.RateLimiting.GlobalMinInterval then
+		return false
+	end
+
+	-- Per-operation interval (if configured).
+	local opInterval = PartyConfig.RateLimiting.OperationIntervals[operation]
+	if opInterval ~= nil then
+		local opMap = operationLastRequest[player]
+		if opMap ~= nil then
+			local opLast = opMap[operation]
+			if opLast ~= nil and (now - opLast) < opInterval then
+				return false
+			end
+		end
+	end
+
+	return true
+end
+
+-- Records a timestamp for an accepted request so future calls can be measured
+-- against it.
+local function recordRequest(player: Player, operation: string, now: number)
+	globalLastRequest[player] = now
+
+	if operationLastRequest[player] == nil then
+		operationLastRequest[player] = {}
+	end
+	operationLastRequest[player][operation] = now
+end
+
+-- Removes all rate-limit records for a player (called on disconnect and Stop).
+local function cleanRateLimitRecords(player: Player)
+	globalLastRequest[player] = nil
+	operationLastRequest[player] = nil
 end
 
 -- ---------------------------------------------------------------------------
@@ -420,29 +485,57 @@ local function handleStart(player: Player): (boolean, string, any)
 				p.countdownRemaining = PartyConfig.Party.CountdownSeconds - second
 				broadcastPartyState(p)
 			else
-				-- Final tick: begin launch.
+				-- Final tick: transition to Launching and update location state
+				-- for all members before calling TransitionService.
 				p.state = PartyState.Launching
 				p.countdownThread = nil
 				p.countdownRemaining = nil
 				logInfo("%s: launching party %s", service.Name, capturedId)
+
+				for _, member in p.players do
+					PlayerLocationService.setLocation(member, PlayerLocationService.LocationState.Launching)
+				end
 				broadcastPartyState(p)
 
-				local ok, err = pcall(TransitionService.LaunchParty, p)
-				if not ok then
-					logWarn("%s: LaunchParty failed for party %s: %s", service.Name, capturedId, tostring(err))
-					-- Recover to Waiting on launch failure so the party is not stuck.
-					local current = parties[capturedId]
+				-- TransitionService returns (success: boolean, resultCode: string?)
+				local callOk, launchSuccess, launchCode = pcall(TransitionService.LaunchParty, p)
+
+				-- Normalise pcall errors into the same result shape.
+				if not callOk then
+					logWarn("%s: LaunchParty threw for party %s: %s", service.Name, capturedId, tostring(launchSuccess))
+					launchSuccess = false
+					launchCode = "internal_error"
+				end
+
+				local current = parties[capturedId]
+
+				if not launchSuccess then
+					logWarn(
+						"%s: LaunchParty failed for party %s (code: %s); recovering to Waiting",
+						service.Name,
+						capturedId,
+						tostring(launchCode)
+					)
 					if current ~= nil then
 						current.state = PartyState.Waiting
+						current.countdownThread = nil
+						current.countdownRemaining = nil
+						-- Reset all members to Lobby so their next respawn is safe.
+						for _, member in current.players do
+							PlayerLocationService.setLocation(member, PlayerLocationService.LocationState.Lobby)
+						end
 						broadcastPartyState(current)
 						broadcastPartyList()
 					end
 					return
 				end
 
-				local current = parties[capturedId]
+				-- Successful launch: enter InGame.
 				if current ~= nil then
 					current.state = PartyState.InGame
+					for _, member in current.players do
+						PlayerLocationService.setLocation(member, PlayerLocationService.LocationState.InGame)
+					end
 					broadcastPartyState(current)
 				end
 			end
@@ -519,6 +612,7 @@ local function handleKick(player: Player, targetUserId: any): (boolean, string, 
 	end
 	party.players = remaining
 	playerToPartyId[targetPlayer] = nil
+	PlayerLocationService.setLocation(targetPlayer, PlayerLocationService.LocationState.Lobby)
 	broadcastNoParty(targetPlayer)
 
 	logInfo("%s: %s kicked %s from party %s", service.Name, player.Name, (targetPlayer :: Player).Name, partyId)
@@ -580,9 +674,22 @@ local VALID_OPERATIONS: { [string]: boolean } = {
 }
 
 local function handleRequest(player: Player, operation: any, arg1: any): (boolean, string, any)
+	-- Validate operation type before any rate-limit check so malformed requests
+	-- are cheap to reject without recording a timestamp.
 	if type(operation) ~= "string" or not VALID_OPERATIONS[operation] then
 		return false, "invalid_args", nil
 	end
+
+	-- Per-player rate limiting.  Rejected requests must not mutate party state
+	-- or trigger any broadcasts.
+	local now = os.clock()
+	if not checkRateLimit(player, operation, now) then
+		logInfo("%s: rate_limited %s for operation '%s'", service.Name, player.Name, operation)
+		return false, "rate_limited", nil
+	end
+	-- Record timestamp before dispatching so the interval is measured from the
+	-- moment the request was accepted, not from when it finished.
+	recordRequest(player, operation, now)
 
 	local ok, success, code, data = pcall(function(): (boolean, string, any)
 		if operation == "create" then
@@ -674,9 +781,10 @@ function service.Start(context)
 		end
 	end)
 
-	-- Clean up any party memberships when a player disconnects.
+	-- Clean up party memberships and rate-limit records when a player disconnects.
 	serviceJanitor:Add(Players.PlayerRemoving:Connect(function(player: Player)
 		removePlayerFromParty(player)
+		cleanRateLimitRecords(player)
 	end))
 
 	-- Broadcast the initial empty party list so connecting clients start correctly.
@@ -697,6 +805,14 @@ function service.Stop(context)
 		if party ~= nil then
 			destroyParty(party)
 		end
+	end
+
+	-- Clear rate-limit records for all players.
+	for player in globalLastRequest do
+		globalLastRequest[player] = nil
+	end
+	for player in operationLastRequest do
+		operationLastRequest[player] = nil
 	end
 
 	if serviceJanitor ~= nil then

@@ -46,19 +46,24 @@ end
 -- ---------------------------------------------------------------------------
 
 -- Moves all players in the party to the test room.
+-- Returns (success: boolean, resultCode: string?) so PartyService can react
+-- to launch failures without relying on pcall error semantics.
+--
 -- The `party` argument must expose a `players` array and a `partyId` string.
 -- When PartyConfig.FutureTeleportEnabled is true, replace the character-move
 -- block below with TeleportService.TeleportAsync without touching the signature.
-function service.LaunchParty(party: { players: { Player }, partyId: string })
+function service.LaunchParty(party: { players: { Player }, partyId: string }): (boolean, string?)
 	if PartyConfig.FutureTeleportEnabled then
-		-- Reserved: TeleportService integration goes here.
+		-- TeleportService integration is not yet implemented.
+		-- Return an explicit failure so PartyService can recover gracefully
+		-- instead of silently leaving the party stuck in Launching state.
 		if serviceLogger ~= nil then
 			serviceLogger.warn(
-				"%s: FutureTeleportEnabled is true but TeleportService is not yet implemented; skipping launch",
+				"%s: FutureTeleportEnabled is true but TeleportService is not yet implemented; aborting launch",
 				service.Name
 			)
 		end
-		return
+		return false, "not_implemented"
 	end
 
 	local origin = getTestRoomSpawnCFrame()
@@ -79,6 +84,7 @@ function service.LaunchParty(party: { players: { Player }, partyId: string })
 			#party.players
 		)
 	end
+	return true, nil
 end
 
 -- ---------------------------------------------------------------------------
