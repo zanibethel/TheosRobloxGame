@@ -67,7 +67,7 @@ function service.LaunchParty(party: { players: { Player }, partyId: string }): (
 	end
 
 	local origin = getTestRoomSpawnCFrame()
-	for index, player in party.players do
+	for index, player in ipairs(party.players) do
 		local character = player.Character
 		if character ~= nil then
 			-- Spread players out so they do not overlap on arrival.

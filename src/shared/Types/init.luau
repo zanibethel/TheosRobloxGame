@@ -117,6 +117,7 @@ export type PartyOperation = "create" | "join" | "leave" | "ready" | "unready" |
 -- reason strings or server-side details in these codes.
 export type PartyResultCode =
 	"ok"
+	| "rate_limited"
 	| "already_in_party"
 	| "no_party"
 	| "not_host"

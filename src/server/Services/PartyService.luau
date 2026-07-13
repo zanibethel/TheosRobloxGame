@@ -492,7 +492,7 @@ local function handleStart(player: Player): (boolean, string, any)
 				p.countdownRemaining = nil
 				logInfo("%s: launching party %s", service.Name, capturedId)
 
-				for _, member in p.players do
+				for _, member in ipairs(p.players) do
 					PlayerLocationService.setLocation(member, PlayerLocationService.LocationState.Launching)
 				end
 				broadcastPartyState(p)
@@ -521,7 +521,7 @@ local function handleStart(player: Player): (boolean, string, any)
 						current.countdownThread = nil
 						current.countdownRemaining = nil
 						-- Reset all members to Lobby so their next respawn is safe.
-						for _, member in current.players do
+						for _, member in ipairs(current.players) do
 							PlayerLocationService.setLocation(member, PlayerLocationService.LocationState.Lobby)
 						end
 						broadcastPartyState(current)
@@ -533,7 +533,7 @@ local function handleStart(player: Player): (boolean, string, any)
 				-- Successful launch: enter InGame.
 				if current ~= nil then
 					current.state = PartyState.InGame
-					for _, member in current.players do
+					for _, member in ipairs(current.players) do
 						PlayerLocationService.setLocation(member, PlayerLocationService.LocationState.InGame)
 					end
 					broadcastPartyState(current)
