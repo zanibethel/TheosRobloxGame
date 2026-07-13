@@ -254,8 +254,111 @@ addTest("player disconnect clears key", function()
 end)
 
 -- ---------------------------------------------------------------------------
--- Runner
+-- Minimal session manager (mirrors TransitionService occupancy logic)
 -- ---------------------------------------------------------------------------
+
+local function makeSessionManager(roomSystem)
+	local activePartyId: string? = nil
+
+	local function acquire(partyId: string): (boolean, string)
+		if activePartyId ~= nil then
+			return false, "room_in_use"
+		end
+		-- Reset the room so the new party starts clean.
+		roomSystem.reset()
+		activePartyId = partyId
+		return true, "ok"
+	end
+
+	local function release(partyId: string)
+		if activePartyId == partyId then
+			activePartyId = nil
+		end
+	end
+
+	return {
+		acquire = acquire,
+		release = release,
+		isOccupied = function(): boolean
+			return activePartyId ~= nil
+		end,
+	}
+end
+
+-- ---------------------------------------------------------------------------
+-- Tests — session lifecycle
+-- ---------------------------------------------------------------------------
+
+-- 9. New session starts with clean drawer, key, door, and room state.
+addTest("new session starts with clean state", function()
+	local room = makeRoomSystem()
+	local alice = { name = "Alice" }
+	local session = makeSessionManager(room)
+
+	local ok, _ = session.acquire("party-A")
+	expect(ok, "acquire should succeed for empty room")
+	expect(not room.isDrawerSearched(), "drawer should not be searched in new session")
+	expect(not room.isDoorUnlocked(), "door should not be unlocked in new session")
+	expect(not room.hasKey(alice), "player should have no key in new session")
+	expect(room.getRoomState() == "searching", "room state should be searching in new session")
+end)
+
+-- 10. A second party cannot reset an occupied room.
+addTest("second party cannot reset occupied room", function()
+	local room = makeRoomSystem()
+	local alice = { name = "Alice" }
+	local session = makeSessionManager(room)
+
+	-- Party A acquires and makes progress.
+	local ok1, _ = session.acquire("party-A")
+	expect(ok1, "first acquire should succeed")
+	room.trySearch(alice)
+	expect(room.isDrawerSearched(), "drawer should be searched for party-A")
+
+	-- Party B attempts to acquire while room is occupied.
+	local ok2, code2 = session.acquire("party-B")
+	expect(not ok2, "second acquire should fail")
+	expect(code2 == "room_in_use", "code should be room_in_use")
+
+	-- Party A's state must remain intact.
+	expect(room.isDrawerSearched(), "party-A's drawer state must not be reset")
+	expect(session.isOccupied(), "room should still be marked occupied")
+end)
+
+-- 11. Room becomes available after the active session ends.
+addTest("room becomes available after session ends", function()
+	local room = makeRoomSystem()
+	local session = makeSessionManager(room)
+
+	session.acquire("party-A")
+	session.release("party-A")
+	expect(not session.isOccupied(), "room should be free after release")
+
+	local ok, _ = session.acquire("party-B")
+	expect(ok, "party-B should acquire after party-A releases")
+end)
+
+-- 12. Completing one session does not permanently contaminate the next.
+addTest("completing one session does not contaminate next", function()
+	local room = makeRoomSystem()
+	local alice = { name = "Alice" }
+	local bob = { name = "Bob" }
+	local session = makeSessionManager(room)
+
+	-- Session 1: Alice completes the room.
+	session.acquire("party-A")
+	room.trySearch(alice)
+	room.tryUnlock(alice)
+	expect(room.getRoomState() == "complete", "session 1 should reach complete state")
+	session.release("party-A")
+
+	-- Session 2: Bob starts fresh — acquire triggers a reset.
+	session.acquire("party-B")
+	expect(not room.isDrawerSearched(), "drawer should be clean for session 2")
+	expect(not room.isDoorUnlocked(), "door should be locked for session 2")
+	expect(not room.hasKey(bob), "bob should have no key in session 2")
+	expect(room.getRoomState() == "searching", "room state should be searching for session 2")
+end)
 
 function RoomTests.run(): (number, number)
 	local passed = 0

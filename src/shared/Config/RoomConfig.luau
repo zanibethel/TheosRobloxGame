@@ -34,6 +34,10 @@ local RoomConfig = {
 	-- Bottom at Y = 2 (floor surface); top at Y = 10.
 	DoorPosition = Vector3.new(100, 6, 19.5),
 	DoorSize = Vector3.new(4, 8, 1),
+	-- Gap in studs between the door panel edge and each side of the wall opening.
+	-- The opening is DoorSize + 2 * DoorClearance wide and DoorSize.Y + DoorClearance
+	-- tall (clearance on top only; bottom sits on the floor).
+	DoorClearance = 0.2,
 	-- Hold duration a player must keep the ProximityPrompt held to search.
 	SearchHoldDuration = 2,
 	-- Seconds for the door-open slide animation.

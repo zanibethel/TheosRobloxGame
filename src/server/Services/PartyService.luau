@@ -214,6 +214,10 @@ local function destroyParty(party: PartyData)
 
 	party.state = PartyState.Closed
 
+	-- Release the test-room occupancy lock if this party held it.
+	-- No-op when the party never occupied the room (e.g. destroyed before launch).
+	TransitionService.releaseRoom(partyId)
+
 	for _, player in party.players do
 		playerToPartyId[player] = nil
 		PlayerLocationService.setLocation(player, PlayerLocationService.LocationState.Lobby)

@@ -72,7 +72,7 @@ local Tests = require(game.ReplicatedStorage.Shared.Tests.RoomTests)
 local passed, total = Tests.run()
 print(passed .. "/" .. total .. " tests passed")
 ```
-Expected: all 8 tests pass. Tests cover:
+Expected: all 12 tests pass. Tests cover:
 - First search awards key
 - Second search does not award another key
 - Player without key cannot unlock door
@@ -81,6 +81,10 @@ Expected: all 8 tests pass. Tests cover:
 - Simultaneous search: exactly one winner
 - Session reset clears key and drawer/door state
 - Player disconnect removes their key
+- New session starts with clean drawer, key, door, and room state
+- Second party cannot reset an occupied room
+- Room becomes available after the active session ends
+- Completing one session does not contaminate the next session
 
 Repository automation can only validate repository-visible files and CLI checks. It does not replace Roblox Studio playtests, replication checks, or device/input verification.
 
@@ -344,7 +348,7 @@ Full test checklist in `docs/PARTY_SYSTEM.md`.  Summary for pull request sign-of
 - [ ] Repository commands completed
 - [ ] Party system pure-logic tests (10/10 pass)
 - [ ] Interaction framework pure-logic tests (18/18 pass)
-- [ ] Room system pure-logic tests (8/8 pass)
+- [ ] Room system pure-logic tests (12/12 pass)
 - Notes:
 
 ### Manual Roblox Studio testing
@@ -391,7 +395,7 @@ Full test checklist in `docs/PARTY_SYSTEM.md`.  Summary for pull request sign-of
 - [ ] Room system: Drawer ProximityPrompt visible and hold search works
 - [ ] Room system: Key HUD updates after search
 - [ ] Room system: Door rejects player without key ("The door is locked.")
-- [ ] Room system: Door opens for player with key; "Room Complete" appears
+- [ ] Room system: Door opens for player with key; player can walk through; "Room Complete" appears
 - [ ] Room system: multiplayer — drawer update replicates
 - [ ] Room system: simultaneous search — one winner
 - [ ] Room system: simultaneous door attempt — one unlock

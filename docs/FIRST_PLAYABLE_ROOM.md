@@ -34,7 +34,10 @@ Creates a `Folder` named `TestRoom` under `workspace` during `Start()`, using on
 | Name | Purpose |
 |---|---|
 | Floor | Solid walkable surface; top surface at Y = 2 |
-| WallNorth/South/East/West | Solid enclosing walls |
+| WallNorthLeft | Left section of the north (exit) wall, beside the doorway |
+| WallNorthRight | Right section of the north (exit) wall, beside the doorway |
+| WallNorthTop | Top section of the north wall, above the doorway opening |
+| WallSouth/East/West | Solid enclosing walls (south, east, west are single slabs) |
 | Ceiling | Overhead slab |
 | RoomLight | Anchored part with a PointLight for basic illumination |
 | SpawnPoint | Invisible, no-collision part at `RoomConfig.SpawnPosition` |
@@ -149,6 +152,7 @@ Creates a `ScreenGui` named `RoomHUD` (ResetOnSpawn = false) with three elements
 | `DrawerSize` | (3, 2, 2) | Drawer dimensions |
 | `DoorPosition` | (100, 6, 19.5) | Door panel centre |
 | `DoorSize` | (4, 8, 1) | Door panel dimensions |
+| `DoorClearance` | 0.2 | Gap in studs between door edge and wall opening |
 | `SearchHoldDuration` | 2 | Hold seconds to search |
 | `DoorOpenDuration` | 0.6 | Tween duration for door open |
 | `ConsumeKeyOnUnlock` | true | Remove key after door opens |
@@ -217,11 +221,13 @@ Player with key approaches exit door
       → OnCompleted:
           doorUnlocked = true
           KeyService.consumeKey(player)
-          TweenService slides door upward (DoorOpenDuration seconds)
+          TweenService slides door panel upward (DoorOpenDuration seconds)
           task.delay → doorPart.CanCollide = false
           workspace.TestRoom:SetAttribute("RoomState", "complete")
           RoomStateChanged:FireAllClients("complete")
   → Prompt disabled globally (enabled resolver returns false)
+  → Door opening is passable: DoorPanel is above the WallNorthLeft/Right/Top
+    opening, CanCollide disabled — players can walk through the gap
 
 Player without key approaches exit door
   → Player triggers prompt
@@ -237,6 +243,21 @@ Player without key approaches exit door
 - **Two players search simultaneously:** `exclusive = true` and the server-side `drawerSearched` double-check ensure exactly one `OnCompleted` awards a key.  The losing player's session is rejected with `"locked"`.
 - **Two players attempt the door simultaneously:** `exclusive = true` prevents both Instant interactions from completing concurrently.  The `doorUnlocked` double-check in `OnCompleted` is an additional safety net.
 - **Late respawn:** `LobbyService` routes InGame players to the test-room spawn.  `RoomController` reads `workspace.TestRoom:GetAttribute("RoomState")` on character load to restore the "Room Complete" overlay.
+
+---
+
+## Room session lifecycle
+
+`TransitionService` enforces one active test-room party at a time.
+
+| Event | Behaviour |
+|---|---|
+| Party countdown completes → launch | `TransitionService.LaunchParty` checks occupancy; if free, resets room state (drawer, door, keys, `RoomState` attribute) and marks the room occupied |
+| Second party tries to launch while room is occupied | Returns `(false, "room_in_use")` → PartyService restores the party to `Waiting` |
+| Active party is destroyed (all players leave or disconnect) | `PartyService.destroyParty` calls `TransitionService.releaseRoom(partyId)` → occupancy cleared |
+| Service stop | `activeRoomPartyId` is cleared unconditionally |
+
+**One-session constraint:** This milestone enforces a single active test-room session.  Multi-room support or a queue system is a future concern.
 
 ---
 
@@ -259,9 +280,10 @@ These tests must be performed manually in Roblox Studio because they depend on r
 ### Setup
 - [ ] Rojo sync (or build) populates the place file from source
 - [ ] Play session starts without bootstrap errors in the output window
-- [ ] `workspace.TestRoom` folder exists with floor, walls, ceiling, and a point light
+- [ ] `workspace.TestRoom` folder exists with floor, WallNorthLeft/Right/Top, other walls, ceiling, and a point light
 - [ ] Drawer and exit door are visible inside the room
 - [ ] SpawnPoint is present (even if invisible)
+- [ ] North wall shows a clear rectangular opening around the exit door (no solid wall behind the door panel)
 
 ### Party launch to room
 - [ ] Create a party, ready up, start → countdown completes → character pivots into the room
@@ -285,6 +307,12 @@ These tests must be performed manually in Roblox Studio because they depend on r
 - [ ] "Room Complete" overlay appears in the upper-centre of the screen
 - [ ] Door prompt is gone (disabled)
 - [ ] Door CanCollide is false after the tween completes
+- [ ] Player can physically walk through the doorway opening (no invisible wall blocking the passage)
+
+### Room session and reset
+- [ ] A second party launching while room is occupied sees launch fail and party returns to Waiting
+- [ ] After all players from the active party disconnect, a new party can launch and receives a clean room
+- [ ] On a fresh session: drawer colour is original, door is in closed position and CanCollide is true, RoomState attribute is "searching"
 
 ### Multiplayer
 - [ ] Two players: one searches, other sees drawer colour change replicated

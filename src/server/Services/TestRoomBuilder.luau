@@ -86,13 +86,39 @@ local function buildRoomGeometry(parent: Instance)
 	local wallCenterY = cy + ft + h / 2
 
 	-- North wall (positive Z) — exit side.
-	makePart(
-		parent,
-		"WallNorth",
-		Vector3.new(cx, wallCenterY, cz + l / 2 + wt / 2),
-		Vector3.new(w + wt * 2, h, wt),
-		wallColor
-	)
+	-- Built in three sections so the doorway opening is physically passable:
+	--   WallNorthLeft  : left of the opening
+	--   WallNorthRight : right of the opening
+	--   WallNorthTop   : above the opening up to the ceiling
+	-- The opening is DoorSize + 2*DoorClearance wide and
+	-- DoorSize.Y + DoorClearance tall (clearance on sides and top; bottom is the floor).
+	local northWallZ = cz + l / 2 + wt / 2
+	local dPos = RoomConfig.DoorPosition
+	local dSize = RoomConfig.DoorSize
+	local clearance = RoomConfig.DoorClearance
+
+	local openingLeft = dPos.X - dSize.X / 2 - clearance
+	local openingRight = dPos.X + dSize.X / 2 + clearance
+	local openingTop = dPos.Y + dSize.Y / 2 + clearance
+
+	local fullWallLeft = cx - w / 2 - wt
+	local fullWallRight = cx + w / 2 + wt
+	local wallTop = cy + ft + h
+
+	-- Left section: from the full wall's left edge to the opening's left edge.
+	local leftWidth = openingLeft - fullWallLeft
+	local leftCenterX = (fullWallLeft + openingLeft) / 2
+	makePart(parent, "WallNorthLeft", Vector3.new(leftCenterX, wallCenterY, northWallZ), Vector3.new(leftWidth, h, wt), wallColor)
+
+	-- Right section: from the opening's right edge to the full wall's right edge.
+	local rightWidth = fullWallRight - openingRight
+	local rightCenterX = (openingRight + fullWallRight) / 2
+	makePart(parent, "WallNorthRight", Vector3.new(rightCenterX, wallCenterY, northWallZ), Vector3.new(rightWidth, h, wt), wallColor)
+
+	-- Top section: spans the full wall width, from the opening's top to the ceiling.
+	local topHeight = wallTop - openingTop
+	local topCenterY = (openingTop + wallTop) / 2
+	makePart(parent, "WallNorthTop", Vector3.new(cx, topCenterY, northWallZ), Vector3.new(w + wt * 2, topHeight, wt), wallColor)
 
 	-- South wall (negative Z).
 	makePart(
