@@ -21,12 +21,13 @@
   - Client `InteractionController` managing ProximityPrompts via CollectionService tags.
   - Pure-logic `InteractionTests` suite (18 tests; no Roblox Studio required).
   - **Milestone 3 — Lobby and party system:**
-    - `LobbyService`: positions player characters at the configured lobby spawn point on every join and respawn.
-    - `PartyService`: server-authoritative party management — create, join, leave, ready/unready, kick, size control, server-driven countdown (5 → 1), host transfer, disconnect cleanup, and party destruction.
-    - `TransitionService`: `LaunchParty()` interface — pivots party members to the test-room spawn; designed for a future one-line swap to `TeleportService`.
+  - `LobbyService`: positions player characters at the correct spawn point on every join and respawn, routing to lobby or test-room based on session location state.
+    - `PartyService`: server-authoritative party management — create, join, leave, ready/unready, kick, size control, server-driven countdown (5 → 1), host transfer, disconnect cleanup, party destruction, per-player rate limiting, and location state updates.
+    - `TransitionService`: `LaunchParty()` returns explicit `(success: boolean, resultCode: string?)` — pivots party members to the test-room spawn; designed for a future one-line swap to `TeleportService`.
+    - `PlayerLocationService`: server-only service that owns the authoritative player session/location state (Lobby / Launching / InGame). LobbyService reads this state to route respawns; PartyService writes it as the party state machine advances.
     - `LobbyController`: client status bar reflecting `ReplicatedStorage.GameRuntime.Phase`.
     - `PartyController`: full placeholder UI (MainPanel, JoinPanel, PartyPanel) wired to party remotes.
-    - `docs/PARTY_SYSTEM.md`: architecture, networking protocol, lifecycle, state diagram, and testing checklist.
+    - `docs/PARTY_SYSTEM.md`: architecture, networking protocol, lifecycle, rate limiting, location-state ownership, state diagram, and testing checklist.
   - GitHub Actions workflow validating JSON, TOML, StyLua formatting, Selene linting, and Rojo buildability.
 - **Post-merge repair status:** Bootstrap lifecycle failure handling was repaired after the initial foundation PR so failed startup no longer leaves server/client/module guards locked.
 
@@ -48,14 +49,15 @@
 
 ### Written but not yet executed: automated tests
 - `InteractionTests.luau` contains 18 pure-logic tests written against a minimal custom harness.
+- `PartyTests.luau` contains 10 pure-logic tests for the party system state machine: host transfer, countdown cancellation (leave / unready), size constraint enforcement, launch failure recovery, successful launch, respawn routing (InGame → game spawn; Launching → skip; Lobby → lobby spawn), and rate-limit isolation.
 - No automated test runner currently executes these tests outside Roblox Studio.
 - Tests must be run manually from a Roblox Studio server Script or the command bar; their results have not been recorded in this repository.
-- Do not treat the 18 tests as verified until a Studio run is completed and the pass/fail output is documented.
+- Do not treat the tests as verified until a Studio run is completed and the pass/fail output is documented.
 
 ### Implemented: awaiting Roblox Studio verification
 - **Milestone 1 — Roblox Foundation:** `In progress` (Studio lifecycle, replication, and bootstrap behavior are unverified).
 - **Milestone 2 — Interaction Framework:** `In progress` (Studio ProximityPrompt rendering, hold timing, exclusive locking, death/disconnect cleanup, and state propagation are unverified).
-- **Milestone 3 — Lobby and Party System:** `In progress` — all code present and repository checks pass; Roblox Studio verification still pending (lobby spawn positioning, party UI rendering, countdown behavior, character pivot to test room, and multi-player replication are unverified without a Studio playtest).
+- **Milestone 3 — Lobby and Party System:** `In progress` — all code present and repository checks pass; Roblox Studio verification still pending (lobby spawn positioning, party UI rendering, countdown behavior, character pivot to test room, InGame respawn routing, and multi-player replication are unverified without a Studio playtest).
 - Code inspection confirms the interaction framework design satisfies: server-authoritative validation, server-generated session IDs, server-owned hold timing, cancellation, replay protection, exclusive/shared locking, cooldowns, enabled-state checks, death/reset/disconnect cleanup, target-removal cleanup, room/round reset API, and pcall-wrapped handler execution.
 - These properties are not considered verified until the manual Studio test checklist in `TESTING.md` has been completed and results recorded.
 
