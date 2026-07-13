@@ -108,17 +108,35 @@ local function buildRoomGeometry(parent: Instance)
 	-- Left section: from the full wall's left edge to the opening's left edge.
 	local leftWidth = openingLeft - fullWallLeft
 	local leftCenterX = (fullWallLeft + openingLeft) / 2
-	makePart(parent, "WallNorthLeft", Vector3.new(leftCenterX, wallCenterY, northWallZ), Vector3.new(leftWidth, h, wt), wallColor)
+	makePart(
+		parent,
+		"WallNorthLeft",
+		Vector3.new(leftCenterX, wallCenterY, northWallZ),
+		Vector3.new(leftWidth, h, wt),
+		wallColor
+	)
 
 	-- Right section: from the opening's right edge to the full wall's right edge.
 	local rightWidth = fullWallRight - openingRight
 	local rightCenterX = (openingRight + fullWallRight) / 2
-	makePart(parent, "WallNorthRight", Vector3.new(rightCenterX, wallCenterY, northWallZ), Vector3.new(rightWidth, h, wt), wallColor)
+	makePart(
+		parent,
+		"WallNorthRight",
+		Vector3.new(rightCenterX, wallCenterY, northWallZ),
+		Vector3.new(rightWidth, h, wt),
+		wallColor
+	)
 
 	-- Top section: spans the full wall width, from the opening's top to the ceiling.
 	local topHeight = wallTop - openingTop
 	local topCenterY = (openingTop + wallTop) / 2
-	makePart(parent, "WallNorthTop", Vector3.new(cx, topCenterY, northWallZ), Vector3.new(w + wt * 2, topHeight, wt), wallColor)
+	makePart(
+		parent,
+		"WallNorthTop",
+		Vector3.new(cx, topCenterY, northWallZ),
+		Vector3.new(w + wt * 2, topHeight, wt),
+		wallColor
+	)
 
 	-- South wall (negative Z).
 	makePart(
@@ -202,18 +220,54 @@ local function buildExitDoor(parent: Instance)
 	local wt = RoomConfig.Room.WallThickness
 	local dPos = RoomConfig.DoorPosition
 	local dSize = RoomConfig.DoorSize
+	local clearance = RoomConfig.DoorClearance
 
-	-- Decorative frame (slightly larger than the panel).
-	local frame = Instance.new("Part")
-	frame.Name = "DoorFrame"
-	frame.Size = Vector3.new(dSize.X + 0.4, dSize.Y + 0.4, wt)
-	frame.CFrame = CFrame.new(dPos)
-	frame.Color = Color3.fromRGB(100, 70, 40)
-	frame.Material = Enum.Material.Wood
-	frame.Anchored = true
-	frame.TopSurface = Enum.SurfaceType.Smooth
-	frame.BottomSurface = Enum.SurfaceType.Smooth
-	frame.Parent = doorModel
+	-- Decorative frame — three separate pieces so the centre doorway stays open.
+	-- Each piece sits just outside the clearance boundary of the door panel.
+	-- The playable opening (dSize.X + 2*clearance wide, dSize.Y + clearance tall)
+	-- is left completely unobstructed.
+	local frameColor = Color3.fromRGB(100, 70, 40)
+	local frameMat = Enum.Material.Wood
+	-- Visual thickness of each frame strip (must be > 0; kept narrow so it does
+	-- not visually intrude on the opening).
+	local frameStrip = 0.25
+
+	-- Left pillar: sits to the left of the opening's left edge.
+	local leftPillar = Instance.new("Part")
+	leftPillar.Name = "DoorFrameLeft"
+	leftPillar.Size = Vector3.new(frameStrip, dSize.Y, wt)
+	leftPillar.CFrame = CFrame.new(dPos.X - dSize.X / 2 - clearance - frameStrip / 2, dPos.Y, dPos.Z)
+	leftPillar.Color = frameColor
+	leftPillar.Material = frameMat
+	leftPillar.Anchored = true
+	leftPillar.TopSurface = Enum.SurfaceType.Smooth
+	leftPillar.BottomSurface = Enum.SurfaceType.Smooth
+	leftPillar.Parent = doorModel
+
+	-- Right pillar: sits to the right of the opening's right edge.
+	local rightPillar = Instance.new("Part")
+	rightPillar.Name = "DoorFrameRight"
+	rightPillar.Size = Vector3.new(frameStrip, dSize.Y, wt)
+	rightPillar.CFrame = CFrame.new(dPos.X + dSize.X / 2 + clearance + frameStrip / 2, dPos.Y, dPos.Z)
+	rightPillar.Color = frameColor
+	rightPillar.Material = frameMat
+	rightPillar.Anchored = true
+	rightPillar.TopSurface = Enum.SurfaceType.Smooth
+	rightPillar.BottomSurface = Enum.SurfaceType.Smooth
+	rightPillar.Parent = doorModel
+
+	-- Top beam: spans the full opening width (including left/right strips) and
+	-- sits above the clearance top edge.
+	local topBeam = Instance.new("Part")
+	topBeam.Name = "DoorFrameTop"
+	topBeam.Size = Vector3.new(dSize.X + 2 * clearance + 2 * frameStrip, frameStrip, wt)
+	topBeam.CFrame = CFrame.new(dPos.X, dPos.Y + dSize.Y / 2 + clearance + frameStrip / 2, dPos.Z)
+	topBeam.Color = frameColor
+	topBeam.Material = frameMat
+	topBeam.Anchored = true
+	topBeam.TopSurface = Enum.SurfaceType.Smooth
+	topBeam.BottomSurface = Enum.SurfaceType.Smooth
+	topBeam.Parent = doorModel
 
 	-- Door panel (the blocking surface that slides open).
 	local panel = Instance.new("Part")

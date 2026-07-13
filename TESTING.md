@@ -396,6 +396,7 @@ Full test checklist in `docs/PARTY_SYSTEM.md`.  Summary for pull request sign-of
 - [ ] Room system: Key HUD updates after search
 - [ ] Room system: Door rejects player without key ("The door is locked.")
 - [ ] Room system: Door opens for player with key; player can walk through; "Room Complete" appears
+- [ ] Room system: DoorFrame has three parts (DoorFrameLeft, DoorFrameRight, DoorFrameTop); centre doorway is open; character passes through without obstruction after DoorPanel opens
 - [ ] Room system: multiplayer — drawer update replicates
 - [ ] Room system: simultaneous search — one winner
 - [ ] Room system: simultaneous door attempt — one unlock
