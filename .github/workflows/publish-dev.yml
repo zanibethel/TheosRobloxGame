@@ -1,0 +1,105 @@
+name: Publish Roblox dev build
+
+on:
+  workflow_dispatch:
+    inputs:
+      universe_id:
+        description: "Roblox Universe ID for the test experience"
+        required: true
+        type: string
+      place_id:
+        description: "Roblox Place ID for the test place"
+        required: true
+        type: string
+      confirm_publish:
+        description: "Publish this build to the selected Roblox place"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: roblox-dev-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: ${{ inputs.confirm_publish }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Aftman tools
+        uses: ok-nick/setup-aftman@v0.4.2
+
+      - name: Validate target IDs
+        shell: bash
+        env:
+          ROBLOX_UNIVERSE_ID: ${{ inputs.universe_id }}
+          ROBLOX_PLACE_ID: ${{ inputs.place_id }}
+        run: |
+          set -euo pipefail
+          [[ "$ROBLOX_UNIVERSE_ID" =~ ^[0-9]+$ ]] || { echo "Universe ID must be numeric."; exit 1; }
+          [[ "$ROBLOX_PLACE_ID" =~ ^[0-9]+$ ]] || { echo "Place ID must be numeric."; exit 1; }
+
+      - name: Build current Rojo source
+        run: |
+          mkdir -p build
+          rojo build default.project.json --output build/TheosRobloxGame.rbxlx
+
+      - name: Save build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: theos-roblox-dev-build
+          path: build/TheosRobloxGame.rbxlx
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Publish to Roblox test place
+        shell: bash
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_OPEN_CLOUD_API_KEY }}
+          ROBLOX_UNIVERSE_ID: ${{ inputs.universe_id }}
+          ROBLOX_PLACE_ID: ${{ inputs.place_id }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$ROBLOX_API_KEY" ]]; then
+            echo "Missing GitHub Actions secret: ROBLOX_OPEN_CLOUD_API_KEY"
+            exit 1
+          fi
+
+          response_file="$(mktemp)"
+
+          http_code="$(
+            curl               --silent               --show-error               --output "$response_file"               --write-out "%{http_code}"               --request POST               "https://apis.roblox.com/universes/v1/${ROBLOX_UNIVERSE_ID}/places/${ROBLOX_PLACE_ID}/versions?versionType=Published"               --header "x-api-key: ${ROBLOX_API_KEY}"               --header "Content-Type: application/xml"               --data-binary "@build/TheosRobloxGame.rbxlx"
+          )"
+
+          cat "$response_file"
+          echo
+
+          if [[ "$http_code" -lt 200 || "$http_code" -ge 300 ]]; then
+            echo "Roblox publish failed with HTTP $http_code"
+            exit 1
+          fi
+
+          python - "$response_file" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          payload = json.loads(pathlib.Path(sys.argv[1]).read_text())
+          version = payload.get("versionNumber")
+          if version is None:
+              raise SystemExit("Roblox returned success without a versionNumber.")
+
+          summary = pathlib.Path.home() / "roblox-publish-summary.txt"
+          summary.write_text(f"Published Roblox place version: {version}\n")
+          print(f"Published Roblox place version: {version}")
+          PY
+
+          cat "$HOME/roblox-publish-summary.txt" >> "$GITHUB_STEP_SUMMARY"
