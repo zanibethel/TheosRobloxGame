@@ -3,16 +3,8 @@ name: Publish Roblox dev build
 on:
   workflow_dispatch:
     inputs:
-      universe_id:
-        description: "Roblox Universe ID for the test experience"
-        required: true
-        type: string
-      place_id:
-        description: "Roblox Place ID for the test place"
-        required: true
-        type: string
       confirm_publish:
-        description: "Publish this build to the selected Roblox place"
+        description: "Publish the current main build to the Theo Roblox test place"
         required: true
         default: false
         type: boolean
@@ -23,6 +15,10 @@ permissions:
 concurrency:
   group: roblox-dev-publish
   cancel-in-progress: false
+
+env:
+  ROBLOX_UNIVERSE_ID: "10436050860"
+  ROBLOX_PLACE_ID: "83099751525380"
 
 jobs:
   publish:
@@ -36,15 +32,13 @@ jobs:
       - name: Set up Aftman tools
         uses: ok-nick/setup-aftman@v0.4.2
 
-      - name: Validate target IDs
+      - name: Validate pinned dev target
         shell: bash
-        env:
-          ROBLOX_UNIVERSE_ID: ${{ inputs.universe_id }}
-          ROBLOX_PLACE_ID: ${{ inputs.place_id }}
         run: |
           set -euo pipefail
-          [[ "$ROBLOX_UNIVERSE_ID" =~ ^[0-9]+$ ]] || { echo "Universe ID must be numeric."; exit 1; }
-          [[ "$ROBLOX_PLACE_ID" =~ ^[0-9]+$ ]] || { echo "Place ID must be numeric."; exit 1; }
+          [[ "$ROBLOX_UNIVERSE_ID" == "10436050860" ]] || { echo "Unexpected Universe ID."; exit 1; }
+          [[ "$ROBLOX_PLACE_ID" == "83099751525380" ]] || { echo "Unexpected Place ID."; exit 1; }
+          echo "Targeting Universe $ROBLOX_UNIVERSE_ID / Place $ROBLOX_PLACE_ID"
 
       - name: Build current Rojo source
         run: |
@@ -63,8 +57,6 @@ jobs:
         shell: bash
         env:
           ROBLOX_API_KEY: ${{ secrets.ROBLOX_OPEN_CLOUD_API_KEY }}
-          ROBLOX_UNIVERSE_ID: ${{ inputs.universe_id }}
-          ROBLOX_PLACE_ID: ${{ inputs.place_id }}
         run: |
           set -euo pipefail
 
@@ -76,7 +68,16 @@ jobs:
           response_file="$(mktemp)"
 
           http_code="$(
-            curl               --silent               --show-error               --output "$response_file"               --write-out "%{http_code}"               --request POST               "https://apis.roblox.com/universes/v1/${ROBLOX_UNIVERSE_ID}/places/${ROBLOX_PLACE_ID}/versions?versionType=Published"               --header "x-api-key: ${ROBLOX_API_KEY}"               --header "Content-Type: application/xml"               --data-binary "@build/TheosRobloxGame.rbxlx"
+            curl \
+              --silent \
+              --show-error \
+              --output "$response_file" \
+              --write-out "%{http_code}" \
+              --request POST \
+              "https://apis.roblox.com/universes/v1/${ROBLOX_UNIVERSE_ID}/places/${ROBLOX_PLACE_ID}/versions?versionType=Published" \
+              --header "x-api-key: ${ROBLOX_API_KEY}" \
+              --header "Content-Type: application/xml" \
+              --data-binary "@build/TheosRobloxGame.rbxlx"
           )"
 
           cat "$response_file"
@@ -102,4 +103,10 @@ jobs:
           print(f"Published Roblox place version: {version}")
           PY
 
-          cat "$HOME/roblox-publish-summary.txt" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### Roblox dev publish"
+            echo
+            echo "- Universe: `$ROBLOX_UNIVERSE_ID`"
+            echo "- Place: `$ROBLOX_PLACE_ID`"
+            cat "$HOME/roblox-publish-summary.txt"
+          } >> "$GITHUB_STEP_SUMMARY"
